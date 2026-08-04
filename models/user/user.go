@@ -492,13 +492,12 @@ func gitSafeName(name string) string {
 
 // GitName returns a git safe name
 func (u *User) GitName() string {
-	gitName := gitSafeName(u.FullName)
-	if len(gitName) > 0 {
-		return gitName
-	}
+	// Use the username rather than FullName so that commits authored by Gitea
+	// itself (merges, web edits, etc.) match the identity used for direct git
+	// pushes, which always carry the pusher's local git config, not FullName.
 	// Although u.Name should be safe if created in our system
 	// LDAP users may have bad names
-	gitName = gitSafeName(u.Name)
+	gitName := gitSafeName(u.Name)
 	if len(gitName) > 0 {
 		return gitName
 	}
