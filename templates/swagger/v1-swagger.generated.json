@@ -5737,6 +5737,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/force-cancel": {
+      "post": {
+        "description": "Cancels a workflow run without waiting for its runners to acknowledge the cancellation.\nThe jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.\nOnly use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.\n",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Force-cancel a workflow run",
+        "operationId": "forceCancelWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -20556,6 +20609,12 @@
           "200": {
             "$ref": "#/responses/string"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20578,6 +20637,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -20615,6 +20680,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GPGKeyList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -20642,6 +20713,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -20676,6 +20753,12 @@
           "200": {
             "$ref": "#/responses/GPGKey"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20703,6 +20786,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -20892,6 +20978,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -20919,6 +21011,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -20950,6 +21048,12 @@
           "200": {
             "$ref": "#/responses/PublicKey"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20977,6 +21081,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -31247,12 +31354,12 @@
         "X-PerPage": {
           "type": "integer",
           "format": "int64",
-          "description": "Commits per page"
+          "description": "Files per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
-          "description": "Total commit count"
+          "description": "Total file count"
         }
       }
     },
@@ -31311,7 +31418,7 @@
           "format": "int64",
           "description": "Commits per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
           "description": "Total commit count"
@@ -32191,6 +32298,17 @@
       "description": "APIString is a string response",
       "schema": {
         "type": "string"
+      }
+    },
+    "unauthorized": {
+      "description": "APIUnauthorizedError is an unauthorized error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       }
     },
     "validationError": {
