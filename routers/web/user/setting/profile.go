@@ -102,7 +102,7 @@ func ProfilePost(ctx *context.Context) {
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
 	}
 
-	if form.FullName != "" {
+	if form.FullName != ctx.Doer.FullName {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeFullName) {
 			ctx.Flash.Error(ctx.Tr("user.form.change_full_name_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
