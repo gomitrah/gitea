@@ -122,10 +122,95 @@ func ResetModels() {
 
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
-	_, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
+	var actionModel any
+	otherModels := make([]any, 0, len(registeredModels))
+	for _, model := range registeredModels {
+		if strings.EqualFold(xormEngine.TableName(model), "action") {
+			actionModel = model
+			continue
+		}
+		otherModels = append(otherModels, model)
+	}
+
+	if len(otherModels) > 0 {
+		if _, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
+			WarnIfDatabaseColumnMissed: true,
+		}, otherModels...); err != nil {
+			return err
+		}
+	}
+
+	if actionModel == nil {
+		return nil
+	}
+
+	if _, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
 		WarnIfDatabaseColumnMissed: true,
-	}, registeredModels...)
-	return err
+		IgnoreIndices:              true,
+	}, actionModel); err != nil {
+		return err
+	}
+
+	return syncActionIndexes(actionModel)
+}
+
+func syncActionIndexes(bean any) error {
+	tableName := xormEngine.TableName(bean)
+	table, err := xormEngine.TableInfo(bean)
+	if err != nil {
+		return err
+	}
+
+	indexes, err := xormEngine.Dialect().GetIndexes(xormEngine.DB(), context.Background(), tableName)
+	if err != nil {
+		return err
+	}
+
+	expectedIndexes := make(map[string]*schemas.Index, len(table.Indexes))
+	for _, index := range table.Indexes {
+		expectedIndexes[index.Name] = index
+	}
+
+	for _, index := range table.Indexes {
+		indexName := index.Name
+		current, exists := indexes[indexName]
+		if exists && indexDefinitionsEqual(index, current) {
+			continue
+		}
+
+		if exists {
+			if _, err := xormEngine.Exec(xormEngine.Dialect().DropIndexSQL(tableName, current)); err != nil {
+				return err
+			}
+		}
+
+		if _, err := xormEngine.Exec(xormEngine.Dialect().CreateIndexSQL(tableName, index)); err != nil {
+			return err
+		}
+	}
+
+	for indexName, index := range indexes {
+		if _, expected := expectedIndexes[indexName]; expected {
+			continue
+		}
+		if _, err := xormEngine.Exec(xormEngine.Dialect().DropIndexSQL(tableName, index)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func indexDefinitionsEqual(expected, actual *schemas.Index) bool {
+	if expected.Type != actual.Type || len(expected.Cols) != len(actual.Cols) {
+		return false
+	}
+	for i := range expected.Cols {
+		if expected.Cols[i] != actual.Cols[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // NamesToBean return a list of beans or an error

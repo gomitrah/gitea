@@ -16,6 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/xorm/schemas"
 )
 
 func TestDumpDatabase(t *testing.T) {
@@ -80,4 +81,46 @@ func TestPrimaryKeys(t *testing.T) {
 		}
 		assert.NotEmpty(t, table.PrimaryKeys, "table %q has no primary key", table.Name)
 	}
+}
+
+func TestSyncAllTablesRestoresActionIndexes(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	engine := db.GetXORMEngineForTesting()
+	indexes, err := engine.Dialect().GetIndexes(engine.DB(), t.Context(), "action")
+	require.NoError(t, err)
+
+	missingIndex, ok := indexes["c_u"]
+	require.True(t, ok)
+	_, err = engine.Exec(engine.Dialect().DropIndexSQL("action", missingIndex))
+	require.NoError(t, err)
+
+	require.NoError(t, db.SyncAllTables())
+
+	indexes, err = engine.Dialect().GetIndexes(engine.DB(), t.Context(), "action")
+	require.NoError(t, err)
+	assertActionIndex(t, indexes, "c_u", []string{"user_id", "is_deleted", "created_unix"})
+	assertActionIndex(t, indexes, "c_u_d", []string{"created_unix", "user_id", "is_deleted"})
+
+	require.NoError(t, db.SyncAllTables())
+	indexes, err = engine.Dialect().GetIndexes(engine.DB(), t.Context(), "action")
+	require.NoError(t, err)
+	index, ok := indexes["c_u_d"]
+	require.True(t, ok)
+	_, err = engine.Exec(engine.Dialect().DropIndexSQL("action", index))
+	require.NoError(t, err)
+
+	require.NoError(t, db.SyncAllTables())
+	indexes, err = engine.Dialect().GetIndexes(engine.DB(), t.Context(), "action")
+	require.NoError(t, err)
+	assertActionIndex(t, indexes, "c_u", []string{"user_id", "is_deleted", "created_unix"})
+	assertActionIndex(t, indexes, "c_u_d", []string{"created_unix", "user_id", "is_deleted"})
+}
+
+func assertActionIndex(t *testing.T, indexes map[string]*schemas.Index, name string, columns []string) {
+	t.Helper()
+	index, ok := indexes[name]
+	require.True(t, ok, "expected action index %q", name)
+	assert.Equal(t, schemas.IndexType, index.Type)
+	assert.Equal(t, columns, index.Cols)
 }
